@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+
+{% block title %}{{ produto.nome }} — AgroInsight IFRO{% endblock %}
+{% block page_title %}Dossiê Técnico do Insumo{% endblock %}
+
+{% block content %}
+
+<!-- Cabeçalho do Produto -->
+<div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
+  <div>
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.35rem;">
+      <h1 style="font-size: 1.5rem; font-weight: 800; color: var(--primary-900);">{{ produto.nome }}</h1>
+      <span class="category-tag">{{ produto.categoria }}</span>
+      {% if produto.ativo == 0 %}
+        <span class="badge badge-estorno">Inativo</span>
+      {% endif %}
+    </div>
+    <div style="font-size: 0.85rem; color: var(--text-muted);">
+      ID #{{ produto.id }} &middot; Cadastrado em {{ produto.data_cadastro|format_date }} &middot; Armazenamento: <strong>{{ produto.local_armazenamento or 'Geral' }}</strong> &middot; Fornecedor: <strong>{{ produto.fornecedor or 'Não informado' }}</strong>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 0.75rem;">
+    <button class="btn btn-secondary btn-sm" data-modal-target="modal-editar-produto">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 20h9"/>
+        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+      </svg>
+      Editar Dados
+    </button>
+    <button class="btn btn-primary btn-sm" data-modal-target="modal-nova-movimentacao">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      Movimentar Insumo
+    </button>
+    <button class="btn btn-secondary btn-sm" style="color: var(--critico-text);" data-modal-target="modal-excluir-produto">
+      Excluir / Inativar
+    </button>
+  </div>
+</div>
+
+<!-- Métricas Analíticas do Produto -->
+<div class="metrics-grid">
+  
+  <!-- Saldo Atual -->
+  <div class="metric-card {% if produto.quantidade_atual <= produto.estoque_minimo %}accent-critico{% else %}accent-verde{% endif %}">
+    <div class="metric-header">
+      <span class="metric-title">Saldo Disponível</span>
+      <div class="metric-icon {% if produto.quantidade_atual <= produto.estoque_minimo %}icon-red{% else %}icon-green{% endif %}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+        </svg>
+      </div>
+    </div>
+    <div class="metric-value">{{ produto.quantidade_atual }} <span style="font-size: 1rem; font-weight: 500;">{{ produto.unidade_medida }}</span></div>
+    <div class="metric-subtext">Mínimo: {{ produto.estoque_minimo }} &middot; Máximo: {{ produto.estoque_maximo or 'N/I' }}</div>
+  </div>
+
+  <!-- Consumo Médio Diário -->
+  <div class="metric-card accent-alto">
+    <div class="metric-header">
+      <span class="metric-title">Taxa de Consumo</span>
+      <div class="metric-icon icon-orange">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+      </div>
+    </div>
+    <div class="metric-value">
+      {% if stats.dados_suficientes %}
+        {{ stats.consumo_medio_diario }} <span style="font-size: 0.95rem; font-weight: 500;">{{ produto.unidade_medida }}/dia</span>
+      {% else %}
+        <span style="font-size: 1.15rem; color: var(--text-muted);">Dados Insuficientes</span>
+      {% endif %}
+    </div>
+    <div class="metric-subtext">{{ stats.total_saidas }} retiradas nos últimos {{ stats.periodo_dias }} dias</div>
+  </div>
+
+  <!-- Duração Estimada do Estoque -->
+  <div class="metric-card accent-medio">
+    <div class="metric-header">
+      <span class="metric-title">Duração Estimada</span>
+      <div class="metric-icon icon-amber">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+      </div>
+    </div>
+    <div class="metric-value">
+      {% if stats.consumo_medio_diario > 0 %}
+        {% set dias = (produto.quantidade_atual / stats.consumo_medio_diario)|round|int %}
+        ~{{ dias }} <span style="font-size: 1rem; font-weight: 500;">dias</span>
+      {% else %}
+        <span style="font-size: 1.15rem; color: var(--text-muted);">Sem Saídas</span>
+      {% endif %}
+    </div>
+    <div class="metric-subtext">
+      Prazo reposição fornecedor: <strong>{{ produto.prazo_reposicao_dias or 'N/I' }} dias</strong>
+    </div>
+  </div>
+
+  <!-- Valor Financeiro Alocado -->
+  <div class="metric-card accent-ouro">
+    <div class="metric-header">
+      <span class="metric-title">Valor Alocado</span>
+      <div class="metric-icon icon-green">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <line x1="12" y1="1" x2="12" y2="23"/>
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+      </div>
+    </div>
+    <div class="metric-value" style="font-size: 1.45rem;">
+      {{ valor_financeiro|currency }}
+    </div>
+    <div class="metric-subtext">Unitário: {{ produto.preco_aquisicao_unitario|currency }}</div>
+  </div>
+
+</div>
+
+<!-- Diagnóstico Inteligente & Alertas Ativos do Produto -->
+{% if alertas %}
+  <div style="margin-bottom: 1.75rem;">
+    <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--primary-900); margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      Diagnósticos Agronômicos e Alertas Ativos
+    </h3>
+
+    {% for a in alertas %}
+      <div class="alert-card prioridade-{{ a.prioridade }}">
+        <div class="alert-card-header">
+          <span class="alert-product-title">{{ a.titulo }}</span>
+          <span class="badge badge-{{ a.prioridade }}">{{ a.prioridade|upper }}</span>
+        </div>
+        <div class="alert-explanation">
+          <strong>Justificativa Técnica:</strong> {{ a.explicacao }}
+        </div>
+        <div class="alert-action">
+          <strong>Ação Recomendada:</strong> {{ a.acao_recomendada }}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<!-- Histórico de Movimentações deste Produto -->
+<div class="table-card">
+  <div class="card-title-bar" style="padding: 1.25rem 1.5rem 0.75rem;">
+    <h2 class="card-title">
+      Histórico de Movimentações do Insumo
+    </h2>
+    <span class="badge badge-sucesso">{{ movimentacoes|length }} registros</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Data / Hora</th>
+          <th>Tipo</th>
+          <th>Quantidade</th>
+          <th>Preço Unit.</th>
+          <th>Destino / Origem</th>
+          <th>Responsável Técnico</th>
+          <th>Observação</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if movimentacoes %}
+          {% for m in movimentacoes %}
+            <tr>
+              <td style="font-size: 0.82rem; color: var(--text-muted);">{{ m.data_movimentacao }}</td>
+              <td>
+                {% if m.tipo == 'entrada' %}
+                  <span class="badge badge-entrada">&uarr; Entrada</span>
+                {% else %}
+                  <span class="badge badge-saida">&darr; Saída</span>
+                {% endif %}
+              </td>
+              <td style="font-weight: 700;">{{ m.quantidade }} {{ produto.unidade_medida }}</td>
+              <td>{{ m.preco_unitario|currency }}</td>
+              <td style="font-size: 0.82rem;">{{ m.fornecedor_destino or '—' }}</td>
+              <td style="font-size: 0.82rem;">{{ m.responsavel }}</td>
+              <td style="font-size: 0.8rem; color: var(--text-muted); max-width: 250px;">{{ m.observacao or '—' }}</td>
+              <td>
+                {% if m.estornada == 1 %}
+                  <span class="badge badge-estorno">Estornada</span>
+                {% else %}
+                  <span class="badge badge-sucesso">Confirmada</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="8" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+              Nenhuma movimentação registrada para este insumo.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal: Editar Dados Cadastrais -->
+<div class="modal-backdrop" id="modal-editar-produto">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">Editar Insumo #{{ produto.id }}</h3>
+      <button class="modal-close" data-modal-close>&times;</button>
+    </div>
+    <form action="{{ url_for('produto_editar', product_id=produto.id) }}" method="POST">
+      <div class="modal-body">
+        
+        <div class="form-group">
+          <label class="form-label">Nome do Insumo *</label>
+          <input type="text" name="nome" class="form-control" value="{{ produto.nome }}" required>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Categoria Oficial *</label>
+            <select name="categoria" class="form-select" required>
+              {% for cat in categorias_oficiais %}
+                <option value="{{ cat }}" {% if produto.categoria == cat %}selected{% endif %}>{{ cat }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Unidade de Medida *</label>
+            <input type="text" name="unidade_medida" class="form-control" value="{{ produto.unidade_medida }}" required>
+          </div>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label class="form-label">Estoque Mínimo *</label>
+            <input type="number" step="any" min="0" name="estoque_minimo" class="form-control" value="{{ produto.estoque_minimo }}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Estoque Máximo</label>
+            <input type="number" step="any" min="0" name="estoque_maximo" class="form-control" value="{{ produto.estoque_maximo or '' }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Prazo Reposição (Dias)</label>
+            <input type="number" step="1" min="0" name="prazo_reposicao_dias" class="form-control" value="{{ produto.prazo_reposicao_dias or '' }}">
+          </div>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label class="form-label">Preço Unitário (R$)</label>
+            <input type="number" step="0.01" min="0" name="preco_aquisicao_unitario" class="form-control" value="{{ produto.preco_aquisicao_unitario or '' }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Data de Validade</label>
+            <input type="date" name="data_validade" class="form-control" value="{{ produto.data_validade or '' }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Lote</label>
+            <input type="text" name="lote" class="form-control" value="{{ produto.lote or '' }}">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Fornecedor</label>
+            <input type="text" name="fornecedor" class="form-control" value="{{ produto.fornecedor or '' }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Local de Armazenamento</label>
+            <input type="text" name="local_armazenamento" class="form-control" value="{{ produto.local_armazenamento or '' }}">
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Excluir / Inativar Produto -->
+<div class="modal-backdrop" id="modal-excluir-produto">
+  <div class="modal-content" style="max-width: 480px;">
+    <div class="modal-header">
+      <h3 class="modal-title" style="color: var(--critico-badge);">Excluir / Inativar Insumo</h3>
+      <button class="modal-close" data-modal-close>&times;</button>
+    </div>
+    <form action="{{ url_for('produto_excluir', product_id=produto.id) }}" method="POST">
+      <div class="modal-body">
+        <p style="margin-bottom: 0.75rem;">
+          Tem certeza que deseja remover o produto <strong>{{ produto.nome }}</strong>?
+        </p>
+        <div class="alert alert-aviso" style="font-size: 0.85rem;">
+          <strong>Regra de Integridade:</strong> Se o produto possuir saldo em estoque positivo, a exclusão será bloqueada para evitar inconsistências contábeis. Se possuir movimentações históricas, será inativado para manter o histórico auditável preservado.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-modal-close>Voltar</button>
+        <button type="submit" class="btn btn-danger">Confirmar Exclusão</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

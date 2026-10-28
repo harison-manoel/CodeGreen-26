@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Inteligente — AgroInsight IFRO{% endblock %}
+{% block page_title %}Dashboard Inteligente de Insumos Rurais{% endblock %}
+
+{% block content %}
+
+<!-- Banner Informativo do Hackathon -->
+<div class="demo-data-banner">
+  <div>
+    <strong>AGROHACK 2026/2:</strong> Sistema operando com cálculos em tempo real sobre a base de dados rural.
+    {% if total_produtos == 0 %}
+      Nenhum produto cadastrado ainda.
+    {% else %}
+      Atualmente com <strong>{{ total_produtos }}</strong> produtos ativos monitorados.
+    {% endif %}
+  </div>
+  <div>
+    <a href="{{ url_for('importar_view') }}">Importar Base Oficial ou Carregar Cenários de Teste &rarr;</a>
+  </div>
+</div>
+
+<!-- 1. Grid de Indicadores Principais (KPIs Calculados) -->
+<div class="metrics-grid">
+  
+  <!-- Total de Insumos -->
+  <div class="metric-card accent-verde">
+    <div class="metric-header">
+      <span class="metric-title">Produtos Cadastrados</span>
+      <div class="metric-icon icon-green">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+        </svg>
+      </div>
+    </div>
+    <div class="metric-value">{{ total_produtos }}</div>
+    <div class="metric-subtext">Itens ativos monitorados</div>
+  </div>
+
+  <!-- Estoque Crítico (Abaixo do Mínimo) -->
+  <div class="metric-card accent-critico">
+    <div class="metric-header">
+      <span class="metric-title">Estoque Crítico / Mínimo</span>
+      <div class="metric-icon icon-red">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </div>
+    </div>
+    <div class="metric-value">{{ produtos_abaixo_minimo }}</div>
+    <div class="metric-subtext">{{ produtos_criticos }} em nível de urgência imediata</div>
+  </div>
+
+  <!-- Risco de Falta (Previsão de Duração) -->
+  <div class="metric-card accent-alto">
+    <div class="metric-header">
+      <span class="metric-title">Risco de Falta</span>
+      <div class="metric-icon icon-orange">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+      </div>
+    </div>
+    <div class="metric-value">{{ produtos_risco_falta }}</div>
+    <div class="metric-subtext">Duração projetada &le; prazo de reposição</div>
+  </div>
+
+  <!-- Vencimento Próximo ou Vencido -->
+  <div class="metric-card accent-medio">
+    <div class="metric-header">
+      <span class="metric-title">Vencimento Próximo</span>
+      <div class="metric-icon icon-amber">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </div>
+    </div>
+    <div class="metric-value">{{ produtos_proximos_vencimento + produtos_vencidos }}</div>
+    <div class="metric-subtext">{{ produtos_vencidos }} lote(s) vencido(s) &middot; {{ produtos_proximos_vencimento }} em alerta</div>
+  </div>
+
+  <!-- Excesso de Estoque -->
+  <div class="metric-card accent-medio">
+    <div class="metric-header">
+      <span class="metric-title">Excesso de Estoque</span>
+      <div class="metric-icon icon-blue">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/>
+          <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/>
+          <path d="M7 21h10"/>
+          <path d="M12 3v18"/>
+        </svg>
+      </div>
+    </div>
+    <div class="metric-value">{{ produtos_excesso }}</div>
+    <div class="metric-subtext">Acima do teto ou com giro muito baixo</div>
+  </div>
+
+  <!-- Valor Financeiro Total Estimado -->
+  <div class="metric-card accent-ouro">
+    <div class="metric-header">
+      <span class="metric-title">Valor do Estoque</span>
+      <div class="metric-icon icon-green">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <line x1="12" y1="1" x2="12" y2="23"/>
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+      </div>
+    </div>
+    <div class="metric-value" style="font-size: 1.55rem;">{{ valor_total_estoque|currency }}</div>
+    <div class="metric-subtext">Baseado em preços e saldos válidos</div>
+  </div>
+
+</div>
+
+<!-- 2. Gráficos Analíticos Dinâmicos -->
+<div class="charts-grid">
+  
+  <!-- Gráfico de Movimentações Mensais (Entradas vs Saídas) -->
+  <div class="chart-card">
+    <div class="card-title-bar">
+      <h2 class="card-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        Fluxo de Movimentações (Entradas vs Saídas)
+      </h2>
+      <span class="badge badge-sucesso">Dados Auditados</span>
+    </div>
+    <div class="chart-container">
+      <canvas id="chart-fluxo-movimentacoes"></canvas>
+    </div>
+  </div>
+
+  <!-- Gráfico de Distribuição por Categoria Oficial -->
+  <div class="chart-card">
+    <div class="card-title-bar">
+      <h2 class="card-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
+          <path d="M22 12A10 10 0 0 0 12 2v10z"/>
+        </svg>
+        Insumos por Categoria
+      </h2>
+    </div>
+    <div class="chart-container">
+      <canvas id="chart-categorias"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<!-- 3. Seção Dividida: Alertas Prioritários & Itens de Alto Consumo -->
+<div style="display: grid; grid-template-columns: 3fr 2fr; gap: 1.25rem; margin-bottom: 1.75rem;">
+  
+  <!-- Alertas com Ação Recomendada -->
+  <div class="table-card" style="padding: 1.5rem; margin-bottom: 0;">
+    <div class="card-title-bar">
+      <h2 class="card-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Alertas Críticos e Altos Pendentes
+      </h2>
+      <a href="{{ url_for('alertas_hub') }}" class="btn btn-secondary btn-sm">Ver Todos ({{ alertas_summary.pendentes }}) &rarr;</a>
+    </div>
+
+    {% if top_alertas %}
+      {% for a in top_alertas %}
+        <div class="alert-card prioridade-{{ a.prioridade }}">
+          <div class="alert-card-header">
+            <div>
+              <span class="alert-product-title">{{ a.produto_nome }}</span>
+              <span class="category-tag" style="margin-left: 0.5rem;">{{ a.produto_categoria }}</span>
+            </div>
+            <span class="badge badge-{{ a.prioridade }}">{{ a.prioridade|upper }}</span>
+          </div>
+          <div class="alert-explanation">
+            <strong>Diagnóstico:</strong> {{ a.explicacao }}
+          </div>
+          <div class="alert-action">
+            <strong>Ação Recomendada:</strong> {{ a.acao_recomendada }}
+          </div>
+          <div class="alert-card-footer">
+            <span>Tipo: {{ a.titulo }}</span>
+            <a href="{{ url_for('alertas_hub') }}" style="color: var(--primary-700); font-weight: 600; text-decoration: none;">Acompanhar &rarr;</a>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div style="padding: 2.5rem; text-align: center; color: var(--text-muted);">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#52b788" stroke-width="2" style="margin-bottom: 0.5rem;">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <p style="font-weight: 600;">Nenhum alerta crítico ou de alta prioridade pendente no momento.</p>
+        <p style="font-size: 0.82rem;">Os níveis de segurança do estoque rural estão sob controle.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Coluna Direita: Capital Parado & Maior Consumo Recente -->
+  <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+    
+    <!-- Itens de Alto Valor com Baixa Movimentação (Capital Parado) -->
+    <div class="table-card" style="padding: 1.25rem; margin-bottom: 0;">
+      <div class="card-title-bar">
+        <h2 class="card-title" style="font-size: 0.95rem;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/>
+            <path d="M12 18V6"/>
+          </svg>
+          Capital Parado (Sem Saídas Recentes)
+        </h2>
+        <span class="badge badge-medio">&ge; R$ 1.500</span>
+      </div>
+
+      {% if capital_parado %}
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          {% for item in capital_parado %}
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0.85rem; background: #f8fafc; border-radius: 8px; border: 1px solid var(--border-light);">
+              <div>
+                <a href="{{ url_for('produto_detalhe', product_id=item.id) }}" style="font-weight: 600; color: var(--text-main); text-decoration: none;">{{ item.nome }}</a>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Saldo: {{ item.quantidade }} {{ item.unidade_medida }} &middot; Unit: {{ item.preco_unitario|currency }}</div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-weight: 700; color: var(--alto-text);">{{ item.valor_total|currency }}</div>
+                <span class="badge badge-baixo" style="font-size: 0.68rem;">0 saídas / 60d</span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p style="font-size: 0.82rem; color: var(--text-muted); text-align: center; padding: 1rem;">Nenhum produto de alto valor sem movimentação recente.</p>
+      {% endif %}
+    </div>
+
+    <!-- Top Insumos com Maior Consumo Recente -->
+    <div class="table-card" style="padding: 1.25rem; margin-bottom: 0;">
+      <div class="card-title-bar">
+        <h2 class="card-title" style="font-size: 0.95rem;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+            <polyline points="17 6 23 6 23 12"/>
+          </svg>
+          Maior Consumo Recente (30 Dias)
+        </h2>
+      </div>
+
+      {% if produtos_maior_consumo %}
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          {% for p in produtos_maior_consumo %}
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0.85rem; background: #f8fafc; border-radius: 8px; border: 1px solid var(--border-light);">
+              <div>
+                <a href="{{ url_for('produto_detalhe', product_id=p.id) }}" style="font-weight: 600; color: var(--text-main); text-decoration: none;">{{ p.nome }}</a>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Média diária: {{ p.consumo_medio_diario }} {{ p.unidade }}/dia</div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-weight: 700; color: var(--primary-700);">{{ p.total_consumido_30d }} {{ p.unidade }}</div>
+                <span style="font-size: 0.72rem; color: var(--text-muted);">{{ p.total_saidas_30d }} saídas</span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p style="font-size: 0.82rem; color: var(--text-muted); text-align: center; padding: 1rem;">Ainda não há saídas suficientes nos últimos 30 dias.</p>
+      {% endif %}
+    </div>
+
+  </div>
+
+</div>
+
+<!-- 4. Tabela de Últimas Movimentações Auditadas -->
+<div class="table-card">
+  <div class="card-title-bar" style="padding: 1.25rem 1.5rem 0.75rem;">
+    <h2 class="card-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+      </svg>
+      Últimas Movimentações Registradas (Trilha Auditável)
+    </h2>
+    <a href="{{ url_for('movimentacoes_list') }}" class="btn btn-secondary btn-sm">Ver Todas &rarr;</a>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Data / Hora</th>
+          <th>Operação</th>
+          <th>Insumo</th>
+          <th>Quantidade</th>
+          <th>Destino / Fornecedor</th>
+          <th>Responsável</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if ultimas_movimentacoes %}
+          {% for m in ultimas_movimentacoes %}
+            <tr>
+              <td style="color: var(--text-muted); font-size: 0.82rem;">{{ m.data_movimentacao }}</td>
+              <td>
+                {% if m.tipo == 'entrada' %}
+                  <span class="badge badge-entrada">&uarr; Entrada</span>
+                {% else %}
+                  <span class="badge badge-saida">&darr; Saída</span>
+                {% endif %}
+              </td>
+              <td>
+                <a href="{{ url_for('produto_detalhe', product_id=m.produto_id) }}" style="font-weight: 600; color: var(--text-main); text-decoration: none;">
+                  {{ m.produto_nome }}
+                </a>
+              </td>
+              <td style="font-weight: 700;">{{ m.quantidade }} {{ m.unidade_medida }}</td>
+              <td style="font-size: 0.82rem;">{{ m.fornecedor_destino or '—' }}</td>
+              <td style="font-size: 0.82rem;">{{ m.responsavel }}</td>
+              <td>
+                {% if m.estornada == 1 %}
+                  <span class="badge badge-estorno">Estornada</span>
+                {% else %}
+                  <span class="badge badge-sucesso">Confirmada</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+              Nenhuma movimentação registrada no sistema. Clique em "Registrar Operação" para iniciar.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,427 @@
+{% extends "base.html" %}
+
+{% block title %}{{ relatorio.titulo }} — AgroInsight IFRO{% endblock %}
+{% block page_title %}Central de Relatórios e Exportação{% endblock %}
+
+{% block content %}
+
+<!-- Abas de Seleção de Relatórios -->
+<div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+  <a href="{{ url_for('relatorios_hub', tipo='posicao') }}" class="btn btn-sm {% if tipo_atual == 'posicao' %}btn-primary{% else %}btn-secondary{% endif %}">
+    Posição do Estoque
+  </a>
+  <a href="{{ url_for('relatorios_hub', tipo='criticos') }}" class="btn btn-sm {% if tipo_atual == 'criticos' %}btn-primary{% else %}btn-secondary{% endif %}">
+    Produtos Críticos & Falta
+  </a>
+  <a href="{{ url_for('relatorios_hub', tipo='vencimentos') }}" class="btn btn-sm {% if tipo_atual == 'vencimentos' %}btn-primary{% else %}btn-secondary{% endif %}">
+    Vencimentos & Lotes
+  </a>
+  <a href="{{ url_for('relatorios_hub', tipo='movimentacoes') }}" class="btn btn-sm {% if tipo_atual == 'movimentacoes' %}btn-primary{% else %}btn-secondary{% endif %}">
+    Movimentações
+  </a>
+  <a href="{{ url_for('relatorios_hub', tipo='consumo') }}" class="btn btn-sm {% if tipo_atual == 'consumo' %}btn-primary{% else %}btn-secondary{% endif %}">
+    Consumo & Projeções
+  </a>
+  <a href="{{ url_for('relatorios_hub', tipo='financeiro') }}" class="btn btn-sm {% if tipo_atual == 'financeiro' %}btn-primary{% else %}btn-secondary{% endif %}">
+    Valor Financeiro
+  </a>
+  <a href="{{ url_for('relatorios_hub', tipo='alertas') }}" class="btn btn-sm {% if tipo_atual == 'alertas' %}btn-primary{% else %}btn-secondary{% endif %}">
+    Alertas & Decisões
+  </a>
+</div>
+
+<!-- Barra de Filtros e Exportação do Relatório -->
+<div class="filter-bar">
+  <form method="GET" action="{{ url_for('relatorios_hub') }}" class="filter-group">
+    <input type="hidden" name="tipo" value="{{ tipo_atual }}">
+
+    {% if tipo_atual == 'posicao' %}
+      <select name="categoria" class="form-select" onchange="this.form.submit()">
+        <option value="">Todas as Categorias</option>
+        {% for cat in categorias_oficiais %}
+          <option value="{{ cat }}" {% if filtro_categoria == cat %}selected{% endif %}>{{ cat }}</option>
+        {% endfor %}
+      </select>
+    {% endif %}
+
+    {% if tipo_atual == 'movimentacoes' %}
+      <input type="date" name="data_inicio" class="form-control" value="{{ filtro_inicio or '' }}" placeholder="Data Início">
+      <input type="date" name="data_fim" class="form-control" value="{{ filtro_fim or '' }}" placeholder="Data Fim">
+      <button type="submit" class="btn btn-secondary btn-sm">Aplicar Período</button>
+    {% endif %}
+
+    {% if tipo_atual == 'alertas' %}
+      <select name="prioridade" class="form-select" onchange="this.form.submit()">
+        <option value="">Todas as Prioridades</option>
+        <option value="critico" {% if filtro_prioridade == 'critico' %}selected{% endif %}>Crítico</option>
+        <option value="alto" {% if filtro_prioridade == 'alto' %}selected{% endif %}>Alto</option>
+        <option value="medio" {% if filtro_prioridade == 'medio' %}selected{% endif %}>Médio</option>
+        <option value="baixo" {% if filtro_prioridade == 'baixo' %}selected{% endif %}>Baixo</option>
+      </select>
+    {% endif %}
+  </form>
+
+  <div style="display: flex; gap: 0.75rem;">
+    <!-- Botão Imprimir / Salvar PDF -->
+    <button class="btn btn-secondary" onclick="window.print()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="6 9 6 2 18 2 18 9"/>
+        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+        <rect width="12" height="8" x="6" y="14"/>
+      </svg>
+      Imprimir / PDF
+    </button>
+
+    <!-- Botão Exportar CSV Oficial -->
+    <a href="{{ url_for('relatorios_exportar_csv', tipo=tipo_atual, categoria=filtro_categoria, data_inicio=filtro_inicio, data_fim=filtro_fim, prioridade=filtro_prioridade) }}" class="btn btn-primary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Exportar CSV (.csv)
+    </a>
+  </div>
+</div>
+
+<!-- Cabeçalho Exclusivo para Impressão -->
+<div class="print-header">
+  <h2 style="font-size: 1.4rem; font-weight: 800;">AGROHACK 2026/2 — IFRO Campus Ariquemes</h2>
+  <h3 style="font-size: 1.1rem; color: #334155;">{{ relatorio.titulo }}</h3>
+  <p style="font-size: 0.85rem; color: #64748b;">Propriedade: Fazenda Modelo IFRO &middot; Gerado em: {{ relatorio.data_geracao }}</p>
+</div>
+
+<!-- Conteúdo Dinâmico do Relatório -->
+<div class="table-card">
+  <div class="card-title-bar" style="padding: 1.25rem 1.5rem 0.75rem;">
+    <div>
+      <h2 class="card-title">{{ relatorio.titulo }}</h2>
+      <div style="font-size: 0.8rem; color: var(--text-muted);">
+        Gerado em {{ relatorio.data_geracao }} &middot; Base de dados sincronizada
+      </div>
+    </div>
+
+    {% if tipo_atual == 'posicao' %}
+      <div style="text-align: right;">
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Valor Total Estimado:</span>
+        <strong style="color: var(--primary-800); font-size: 1.1rem; display: block;">{{ relatorio.valor_total_estimado|currency }}</strong>
+      </div>
+    {% elif tipo_atual == 'movimentacoes' %}
+      <div style="display: flex; gap: 1rem;">
+        <span class="badge badge-entrada">Entradas: {{ relatorio.total_entradas }}</span>
+        <span class="badge badge-saida">Saídas: {{ relatorio.total_saidas }}</span>
+      </div>
+    {% elif tipo_atual == 'financeiro' %}
+      <div style="text-align: right;">
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Total Imobilizado:</span>
+        <strong style="color: var(--primary-800); font-size: 1.1rem; display: block;">{{ relatorio.total_valor_estoque|currency }}</strong>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="table-responsive">
+    
+    <!-- 1. Tabela Posição de Estoque -->
+    {% if tipo_atual == 'posicao' %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Insumo</th>
+            <th>Categoria</th>
+            <th>Saldo Atual</th>
+            <th>Estoque Mínimo</th>
+            <th>Estoque Máximo</th>
+            <th>Preço Unit.</th>
+            <th>Valor Total</th>
+            <th>Situação</th>
+            <th>Lote / Local</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for it in relatorio['items'] %}
+            <tr>
+              <td>#{{ it.id }}</td>
+              <td style="font-weight: 700;">{{ it.nome }}</td>
+              <td><span class="category-tag">{{ it.categoria }}</span></td>
+              <td style="font-weight: 800;">{{ it.saldo_atual }} {{ it.unidade }}</td>
+              <td>{{ it.estoque_minimo }} {{ it.unidade }}</td>
+              <td>{{ it.estoque_maximo or '—' }}</td>
+              <td>{{ it.preco_unitario|currency }}</td>
+              <td style="font-weight: 700;">{{ it.valor_total|currency }}</td>
+              <td>
+                {% if 'Crítico' in it.situacao %}
+                  <span class="badge badge-critico">{{ it.situacao }}</span>
+                {% elif 'Excesso' in it.situacao %}
+                  <span class="badge badge-alto">{{ it.situacao }}</span>
+                {% else %}
+                  <span class="badge badge-sucesso">{{ it.situacao }}</span>
+                {% endif %}
+              </td>
+              <td style="font-size: 0.8rem;">{{ it.lote }} / {{ it.local }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+
+    <!-- 2. Tabela Produtos Críticos -->
+    {% if tipo_atual == 'criticos' %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Insumo</th>
+            <th>Categoria</th>
+            <th>Saldo Atual</th>
+            <th>Estoque Mínimo</th>
+            <th>Consumo Diário</th>
+            <th>Duração Estimada</th>
+            <th>Prazo Reposição</th>
+            <th>Diagnóstico</th>
+            <th>Ação Recomendada</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if relatorio['items'] %}
+            {% for it in relatorio['items'] %}
+              <tr>
+                <td style="font-weight: 700;">{{ it.nome }}</td>
+                <td><span class="category-tag">{{ it.categoria }}</span></td>
+                <td style="font-weight: 800; color: var(--critico-badge);">{{ it.saldo_atual }} {{ it.unidade }}</td>
+                <td>{{ it.estoque_minimo }} {{ it.unidade }}</td>
+                <td>{{ it.consumo_diario }} {{ it.unidade }}/dia</td>
+                <td style="font-weight: 700;">
+                  {% if it.dias_estimados != 'N/D' %}
+                    ~{{ it.dias_estimados }} dias
+                  {% else %}
+                    Dados Insuficientes
+                  {% endif %}
+                </td>
+                <td>{{ it.prazo_reposicao }}</td>
+                <td style="font-size: 0.82rem; max-width: 250px;">{{ it.diagnostico }}</td>
+                <td style="font-size: 0.82rem; color: var(--primary-800); max-width: 250px;">{{ it.recomendacao }}</td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr><td colspan="9" style="text-align:center; padding:2rem;">Nenhum produto crítico detectado.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    {% endif %}
+
+    <!-- 3. Tabela Vencimentos -->
+    {% if tipo_atual == 'vencimentos' %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Insumo</th>
+            <th>Categoria</th>
+            <th>Lote</th>
+            <th>Data Validade</th>
+            <th>Dias Restantes</th>
+            <th>Saldo em Risco</th>
+            <th>Status</th>
+            <th>Local Armazenado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if relatorio['items'] %}
+            {% for it in relatorio['items'] %}
+              <tr>
+                <td style="font-weight: 700;">{{ it.nome }}</td>
+                <td><span class="category-tag">{{ it.categoria }}</span></td>
+                <td style="font-weight: 600;">{{ it.lote }}</td>
+                <td>{{ it.data_validade }}</td>
+                <td style="font-weight: 700;">
+                  {% if it.dias_restantes < 0 %}
+                    <span style="color: var(--critico-badge);">Vencido há {{ it.dias_restantes|abs }} dias</span>
+                  {% else %}
+                    {{ it.dias_restantes }} dias
+                  {% endif %}
+                </td>
+                <td style="font-weight: 800;">{{ it.saldo_atual }} {{ it.unidade }}</td>
+                <td>
+                  {% if 'Vencido' in it.status %}
+                    <span class="badge badge-critico">{{ it.status }}</span>
+                  {% elif 'Crítico' in it.status %}
+                    <span class="badge badge-alto">{{ it.status }}</span>
+                  {% elif 'Alerta' in it.status %}
+                    <span class="badge badge-medio">{{ it.status }}</span>
+                  {% else %}
+                    <span class="badge badge-sucesso">{{ it.status }}</span>
+                  {% endif %}
+                </td>
+                <td>{{ it.local }}</td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr><td colspan="8" style="text-align:center; padding:2rem;">Nenhum produto com data de validade cadastrado.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    {% endif %}
+
+    <!-- 4. Tabela Movimentações -->
+    {% if tipo_atual == 'movimentacoes' %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Operação</th>
+            <th>Insumo</th>
+            <th>Categoria</th>
+            <th>Quantidade</th>
+            <th>Preço Unit.</th>
+            <th>Origem / Destino</th>
+            <th>Responsável</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in relatorio['items'] %}
+            <tr>
+              <td style="font-size: 0.82rem; color: var(--text-muted);">{{ m.data_movimentacao }}</td>
+              <td>
+                {% if m.tipo == 'entrada' %}
+                  <span class="badge badge-entrada">&uarr; Entrada</span>
+                {% else %}
+                  <span class="badge badge-saida">&darr; Saída</span>
+                {% endif %}
+              </td>
+              <td style="font-weight: 700;">{{ m.produto_nome }}</td>
+              <td><span class="category-tag">{{ m.produto_categoria }}</span></td>
+              <td style="font-weight: 800;">{{ m.quantidade }} {{ m.unidade_medida }}</td>
+              <td>{{ m.preco_unitario|currency }}</td>
+              <td style="font-size: 0.82rem;">{{ m.fornecedor_destino or '—' }}</td>
+              <td style="font-size: 0.82rem;">{{ m.responsavel }}</td>
+              <td>
+                {% if m.estornada == 1 %}
+                  <span class="badge badge-estorno">Estornada</span>
+                {% else %}
+                  <span class="badge badge-sucesso">Válida</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+
+    <!-- 5. Tabela Consumo e Projeções -->
+    {% if tipo_atual == 'consumo' %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Insumo</th>
+            <th>Categoria</th>
+            <th>Consumo Total (30d)</th>
+            <th>Qtd de Retiradas</th>
+            <th>Média Diária (CMD)</th>
+            <th>Saldo Atual</th>
+            <th>Duração Estimada</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if relatorio['items'] %}
+            {% for c in relatorio['items'] %}
+              <tr>
+                <td style="font-weight: 700;">{{ c.nome }}</td>
+                <td><span class="category-tag">{{ c.categoria }}</span></td>
+                <td style="font-weight: 800; color: var(--primary-800);">{{ c.total_consumido_30d }} {{ c.unidade }}</td>
+                <td>{{ c.total_saidas_30d }} saídas</td>
+                <td>{{ c.consumo_medio_diario }} {{ c.unidade }}/dia</td>
+                <td>{{ c.saldo_atual }} {{ c.unidade }}</td>
+                <td style="font-weight: 700;">~{{ c.duracao_dias }} dias</td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr><td colspan="7" style="text-align:center; padding:2rem;">Nenhum consumo registrado nos últimos 30 dias.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    {% endif %}
+
+    <!-- 6. Tabela Valor Financeiro -->
+    {% if tipo_atual == 'financeiro' %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Posição</th>
+            <th>Insumo</th>
+            <th>Categoria</th>
+            <th>Quantidade</th>
+            <th>Preço Unitário</th>
+            <th>Valor Imobilizado (R$)</th>
+            <th>Saídas Recentes (60d)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for it in relatorio.ranking %}
+            <tr>
+              <td style="font-weight: 700; color: var(--text-muted);">#{{ loop.index }}</td>
+              <td style="font-weight: 700;">{{ it.nome }}</td>
+              <td><span class="category-tag">{{ it.categoria }}</span></td>
+              <td>{{ it.quantidade }} {{ it.unidade_medida }}</td>
+              <td>{{ it.preco_unitario|currency }}</td>
+              <td style="font-weight: 800; color: var(--primary-900); font-size: 1rem;">
+                {{ it.valor_total|currency }}
+              </td>
+              <td>
+                {% if it.saidas_recentes == 0 %}
+                  <span class="badge badge-alto">0 saídas (Parado)</span>
+                {% else %}
+                  <span class="badge badge-sucesso">{{ it.saidas_recentes }} saídas</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+
+    <!-- 7. Tabela Alertas e Recomendações -->
+    {% if tipo_atual == 'alertas' %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Insumo</th>
+            <th>Categoria</th>
+            <th>Tipo de Alerta</th>
+            <th>Prioridade</th>
+            <th>Situação</th>
+            <th>Diagnóstico Explicável</th>
+            <th>Ação Recomendada</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if relatorio['items'] %}
+            {% for a in relatorio['items'] %}
+              <tr>
+                <td style="font-weight: 700;">{{ a.produto_nome }}</td>
+                <td><span class="category-tag">{{ a.produto_categoria }}</span></td>
+                <td>{{ a.titulo }}</td>
+                <td><span class="badge badge-{{ a.prioridade }}">{{ a.prioridade|upper }}</span></td>
+                <td>
+                  {% if a.situacao == 'pendente' %}
+                    <span class="badge badge-alto" style="background-color: #f1f5f9; color: #475569;">Pendente</span>
+                  {% elif a.situacao == 'em_acompanhamento' %}
+                    <span class="badge badge-medio">Em Acompanhamento</span>
+                  {% else %}
+                    <span class="badge badge-sucesso">Resolvido</span>
+                  {% endif %}
+                </td>
+                <td style="font-size: 0.82rem; max-width: 280px;">{{ a.explicacao }}</td>
+                <td style="font-size: 0.82rem; color: var(--primary-800); max-width: 280px;">{{ a.acao_recomendada }}</td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr><td colspan="7" style="text-align:center; padding:2rem;">Nenhum alerta registrado com os filtros selecionados.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}

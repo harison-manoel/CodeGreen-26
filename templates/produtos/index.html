@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+
+{% block title %}Insumos e Produtos — AgroInsight IFRO{% endblock %}
+{% block page_title %}Gestão de Insumos e Produtos Rurais{% endblock %}
+
+{% block content %}
+
+<!-- Barra de Filtros e Ações -->
+<div class="filter-bar">
+  <form method="GET" action="{{ url_for('produtos_list') }}" class="filter-group">
+    
+    <!-- Busca Textual -->
+    <input type="text" name="q" class="form-control" placeholder="Buscar por nome, lote, fornecedor..." value="{{ search_atual or '' }}" style="min-width: 260px;">
+
+    <!-- Filtro por Categoria Oficial -->
+    <select name="categoria" class="form-select" onchange="this.form.submit()">
+      <option value="">Todas as Categorias</option>
+      {% for cat in categorias_oficiais %}
+        <option value="{{ cat }}" {% if categoria_atual == cat %}selected{% endif %}>{{ cat }}</option>
+      {% endfor %}
+    </select>
+
+    <!-- Ordenação -->
+    <select name="ordenar" class="form-select" onchange="this.form.submit()">
+      <option value="nome" {% if ordenar_atual == 'nome' %}selected{% endif %}>Nome (A-Z)</option>
+      <option value="quantidade" {% if ordenar_atual == 'quantidade' %}selected{% endif %}>Maior Saldo</option>
+      <option value="preco" {% if ordenar_atual == 'preco' %}selected{% endif %}>Maior Preço</option>
+      <option value="validade" {% if ordenar_atual == 'validade' %}selected{% endif %}>Vencimento Mais Próximo</option>
+      <option value="categoria" {% if ordenar_atual == 'categoria' %}selected{% endif %}>Categoria</option>
+    </select>
+
+    <button type="submit" class="btn btn-secondary">Filtrar</button>
+
+    {% if search_atual or categoria_atual %}
+      <a href="{{ url_for('produtos_list') }}" class="btn btn-secondary btn-sm" style="color: var(--critico-text);">Limpar Filtros</a>
+    {% endif %}
+  </form>
+
+  <div>
+    <button class="btn btn-primary" data-modal-target="modal-novo-produto">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      Novo Insumo
+    </button>
+  </div>
+</div>
+
+<!-- Tabela de Produtos -->
+<div class="table-card">
+  <div class="card-title-bar" style="padding: 1.25rem 1.5rem 0.75rem;">
+    <h2 class="card-title">
+      Catálogo de Insumos da Propriedade ({{ total_filtrado }} itens encontrados)
+    </h2>
+    <div>
+      {% if criticos_count > 0 %}
+        <span class="badge badge-critico">{{ criticos_count }} abaixo do mínimo</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Insumo / Nome</th>
+          <th>Categoria</th>
+          <th>Saldo Atual</th>
+          <th>Nível de Segurança</th>
+          <th>Preço Unit.</th>
+          <th>Validade</th>
+          <th>Lote / Armazenamento</th>
+          <th style="text-align: right;">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if produtos %}
+          {% for p in produtos %}
+            {% set saldo = p.quantidade_atual|float %}
+            {% set minimo = p.estoque_minimo|float %}
+            {% set maximo = p.estoque_maximo|float if p.estoque_maximo else (minimo * 3.5) %}
+            
+            {% set pct = 0 %}
+            {% if maximo > 0 %}
+              {% set pct = [(saldo / maximo * 100)|round, 100]|min %}
+            {% endif %}
+
+            <tr>
+              <td>
+                <a href="{{ url_for('produto_detalhe', product_id=p.id) }}" style="font-weight: 700; color: var(--primary-900); text-decoration: none;">
+                  {{ p.nome }}
+                </a>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">
+                  ID #{{ p.id }} &middot; Cadastrado em {{ p.data_cadastro|format_date }}
+                </div>
+              </td>
+              <td>
+                <span class="category-tag">{{ p.categoria }}</span>
+              </td>
+              <td>
+                <span style="font-size: 1.05rem; font-weight: 800; {% if saldo <= minimo %}color: var(--critico-badge);{% endif %}">
+                  {{ saldo }} {{ p.unidade_medida }}
+                </span>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">
+                  Mín: {{ minimo }} {{ p.unidade_medida }}
+                </div>
+              </td>
+              <td>
+                <div class="stock-level-container">
+                  <div class="stock-progress-bar">
+                    <div class="stock-progress-fill {% if saldo <= (minimo * 0.5) %}fill-danger{% elif saldo <= minimo %}fill-warning{% elif p.estoque_maximo and saldo > p.estoque_maximo %}fill-excess{% else %}fill-safe{% endif %}" style="width: {{ pct }}%;"></div>
+                  </div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+                    <span>
+                      {% if saldo <= minimo %}
+                        <strong style="color: var(--critico-text);">Crítico</strong>
+                      {% elif p.estoque_maximo and saldo > p.estoque_maximo %}
+                        <strong style="color: #4f46e5;">Excesso</strong>
+                      {% else %}
+                        Normal
+                      {% endif %}
+                    </span>
+                    <span>{{ pct }}%</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                {% if p.preco_aquisicao_unitario is not none %}
+                  <div style="font-weight: 600;">{{ p.preco_aquisicao_unitario|currency }}</div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted);">por {{ p.unidade_medida }}</div>
+                {% else %}
+                  <span style="color: var(--text-muted); font-size: 0.8rem; font-style: italic;">Desconhecido</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if p.data_validade %}
+                  {% set dias_rest = p.data_validade|days_until %}
+                  <div>{{ p.data_validade|format_date }}</div>
+                  {% if dias_rest is not none %}
+                    {% if dias_rest < 0 %}
+                      <span class="badge badge-critico" style="font-size: 0.7rem;">Vencido há {{ dias_rest|abs }}d</span>
+                    {% elif dias_rest <= 30 %}
+                      <span class="badge badge-alto" style="font-size: 0.7rem;">Resta {{ dias_rest }}d</span>
+                    {% elif dias_rest <= 60 %}
+                      <span class="badge badge-medio" style="font-size: 0.7rem;">Resta {{ dias_rest }}d</span>
+                    {% else %}
+                      <span style="font-size: 0.72rem; color: var(--text-muted);">{{ dias_rest }} dias</span>
+                    {% endif %}
+                  {% endif %}
+                {% else %}
+                  <span style="color: var(--text-muted); font-size: 0.8rem;">Não expira / N/I</span>
+                {% endif %}
+              </td>
+              <td>
+                <div style="font-size: 0.82rem; font-weight: 500;">{{ p.lote or '—' }}</div>
+                <div style="font-size: 0.74rem; color: var(--text-muted);">{{ p.local_armazenamento or 'Geral' }}</div>
+              </td>
+              <td style="text-align: right;">
+                <a href="{{ url_for('produto_detalhe', product_id=p.id) }}" class="btn btn-secondary btn-sm" title="Ver Detalhes e Histórico">
+                  Detalhes &rarr;
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="8" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+              Nenhum insumo encontrado com os filtros selecionados.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal: Cadastro de Novo Insumo -->
+<div class="modal-backdrop" id="modal-novo-produto">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">Cadastrar Novo Insumo Rural</h3>
+      <button class="modal-close" data-modal-close>&times;</button>
+    </div>
+    <form action="{{ url_for('produto_criar') }}" method="POST">
+      <div class="modal-body">
+        
+        <div class="form-group">
+          <label class="form-label">Nome do Insumo / Produto *</label>
+          <input type="text" name="nome" class="form-control" placeholder="Ex: Herbicida Glifosato 480 SL, Adubo NPK 04-14-08" required>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Categoria Oficial *</label>
+            <select name="categoria" class="form-select" required>
+              {% for cat in categorias_oficiais %}
+                <option value="{{ cat }}">{{ cat }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Unidade de Medida *</label>
+            <input type="text" name="unidade_medida" class="form-control" placeholder="Ex: kg, litro, saca 50kg, tonelada, unidade" required>
+          </div>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label class="form-label">Saldo Inicial</label>
+            <input type="number" step="any" min="0" name="quantidade_atual" class="form-control" value="0.0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Estoque Mínimo *</label>
+            <input type="number" step="any" min="0" name="estoque_minimo" class="form-control" value="0.0" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Estoque Máximo</label>
+            <input type="number" step="any" min="0" name="estoque_maximo" class="form-control" placeholder="Opcional">
+          </div>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label class="form-label">Preço Unitário (R$)</label>
+            <input type="number" step="0.01" min="0" name="preco_aquisicao_unitario" class="form-control" placeholder="Opcional">
+            <span class="form-hint">Se ausente, tratado como desconhecido.</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Prazo Reposição (Dias)</label>
+            <input type="number" step="1" min="0" name="prazo_reposicao_dias" class="form-control" placeholder="Ex: 7">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Data de Validade</label>
+            <input type="date" name="data_validade" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label class="form-label">Lote</label>
+            <input type="text" name="lote" class="form-control" placeholder="Ex: L-2026-01">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fornecedor Habitual</label>
+            <input type="text" name="fornecedor" class="form-control" placeholder="Ex: Distribuidora Rural">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Local de Armazenamento</label>
+            <input type="text" name="local_armazenamento" class="form-control" placeholder="Ex: Galpão 1, Depósito Químico">
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar Insumo</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

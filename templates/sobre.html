@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Sobre o Projeto — AgroInsight IFRO{% endblock %}
+{% block page_title %}Sobre o Projeto & Documentação do AGROHACK 2026/2{% endblock %}
+
+{% block content %}
+
+<!-- Apresentação Geral -->
+<div class="table-card" style="padding: 2rem; margin-bottom: 1.5rem;">
+  <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+    <div class="metric-icon icon-green" style="width: 3.25rem; height: 3.25rem;">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path d="M12 2v8M4.93 10.93l1.41 1.41M2 18h2M20 18h2M19.07 10.93l-1.41 1.41M22 22H2M8 22l4-10 4 10"/>
+      </svg>
+    </div>
+    <div>
+      <h1 style="font-size: 1.5rem; font-weight: 800; color: var(--primary-900);">AgroInsight IFRO</h1>
+      <p style="font-size: 0.95rem; color: var(--text-muted);">
+        Sistema Inteligente de Gestão de Insumos Rurais e Apoio à Decisão Agronômica
+      </p>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.5rem;">
+    <span class="badge badge-sucesso">IFRO Campus Ariquemes</span>
+    <span class="badge badge-medio">Desafio Hackathon — Agronomia 2026/2</span>
+    <span class="badge badge-baixo">Inteligência Explicável (XAI)</span>
+    <span class="badge badge-alto">Persistência ACID com Auditoria</span>
+  </div>
+
+  <p style="font-size: 0.95rem; line-height: 1.7; color: #334155; margin-bottom: 1rem;">
+    O <strong>AgroInsight IFRO</strong> foi desenvolvido especialmente para o <strong>AGROHACK 2026/2</strong>, tendo como missão transformar os registros rotineiros de estoque de uma propriedade rural em informações úteis, preditivas e acionáveis. Em vez de ser apenas um CRUD estático, o sistema conta com um motor analítico transparente que identifica situações críticas, prevê desabastecimentos, rastreia riscos de vencimento, aponta desvios anômalos de consumo e apoia o produtor na tomada de decisões técnicas e econômicas.
+  </p>
+</div>
+
+<!-- Metodologia e Critérios de Análise -->
+<div class="table-card" style="padding: 2rem; margin-bottom: 1.5rem;">
+  <h2 class="card-title" style="margin-bottom: 1.25rem;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+      <path d="m22 7-7.5 7.5-4-4L2 19"/>
+      <circle cx="18" cy="7" r="3"/>
+    </svg>
+    Metodologia e Fórmulas de Análise Determinística
+  </h2>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+    
+    <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 1.25rem;">
+      <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--primary-900); margin-bottom: 0.5rem;">A. Estoque Crítico</h3>
+      <p style="font-size: 0.85rem; color: #475569; line-height: 1.5;">
+        Dispara alerta quando <code>Quantidade Atual &le; Estoque Mínimo</code>. Se o saldo for menor que 50% do mínimo ou zerado, a prioridade é classificada como <strong>Crítica</strong>; caso contrário, como <strong>Alta</strong>.
+      </p>
+    </div>
+
+    <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 1.25rem;">
+      <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--primary-900); margin-bottom: 0.5rem;">B. Previsão de Falta e Duração</h3>
+      <p style="font-size: 0.85rem; color: #475569; line-height: 1.5;">
+        Calcula o Consumo Médio Diário <code>CMD = Total de Saídas (30d) / 30</code>. A duração estimada é dada por <code>Dias = Quantidade / CMD</code>. Se <code>Dias &le; Prazo de Reposição</code>, gera alerta crítico de desabastecimento iminente. Não inventa projeções se não houver saídas registradas.
+      </p>
+    </div>
+
+    <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 1.25rem;">
+      <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--primary-900); margin-bottom: 0.5rem;">C. Risco de Vencimento e Perda</h3>
+      <p style="font-size: 0.85rem; color: #475569; line-height: 1.5;">
+        Monitora lotes com validade próxima (&le; 60 dias) ou vencida (&lt; 0 dias). Quando há histórico de consumo, calcula se o consumo previsto até o vencimento é inferior ao saldo, estimando a quantidade e o valor em risco de descarte.
+      </p>
+    </div>
+
+    <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 1.25rem;">
+      <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--primary-900); margin-bottom: 0.5rem;">D. Detecção de Consumo Fora do Padrão</h3>
+      <p style="font-size: 0.85rem; color: #475569; line-height: 1.5;">
+        Compara saídas individuais com o baseline histórico do produto (leave-one-out). Saídas que superam <code>Média + 2.0 &times; Desvio Padrão</code> e pelo menos 70% acima da média usual são marcadas como atípicas para investigação de campo.
+      </p>
+    </div>
+
+    <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 1.25rem;">
+      <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--primary-900); margin-bottom: 0.5rem;">E. Capital Imobilizado</h3>
+      <p style="font-size: 0.85rem; color: #475569; line-height: 1.5;">
+        Calcula o valor financeiro do estoque considerando estritamente preços válidos (campos nulos são tratados como desconhecidos). Destaca produtos com valor &ge; R$ 1.500 sem saídas nos últimos 60 dias.
+      </p>
+    </div>
+
+    <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 1.25rem;">
+      <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--primary-900); margin-bottom: 0.5rem;">F. Deduplicação e Grafias Similares</h3>
+      <p style="font-size: 0.85rem; color: #475569; line-height: 1.5;">
+        Combina normalização fonética, SequenceMatcher e Token Sort Ratio para detectar cadastros como "Ureia 46%" e "Ureia Agrícola 46% Granulada", sugerindo revisão manual sem exclusão arbitrária.
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<!-- Declaração de Uso Responsável de Inteligência Artificial -->
+<div class="table-card" style="padding: 2rem;">
+  <h2 class="card-title" style="margin-bottom: 1rem;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>
+    Declaração de Uso Responsável de Inteligência Artificial (Seção 8 do Regulamento)
+  </h2>
+
+  <div class="alert alert-sucesso" style="margin-bottom: 1.25rem;">
+    <strong>Transparência Acadêmica:</strong> As regras de análise do sistema operam de forma 100% determinística, auditável e verificável, sem "alucinações" ou caixas pretas que possam induzir o gestor rural a erros operacionais.
+  </div>
+
+  <p style="font-size: 0.9rem; line-height: 1.6; color: #334155; margin-bottom: 1rem;">
+    Ferramentas de IA generativa e de assistência técnica foram empregadas exclusivamente como aceleradores de desenvolvimento de código, geração de testes automatizados e estruturação dos cenários de teste simulados para Rondônia. Todas as lógicas de negócio, cálculos matemáticos, transações ACID e validações foram rigorosamente revisadas, testadas e validadas pela equipe de desenvolvimento.
+  </p>
+
+  <div style="border-top: 1px solid var(--border-light); padding-top: 1rem; margin-top: 1rem; font-size: 0.82rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+    <span>Desenvolvido para o <strong>AGROHACK 2026/2 — IFRO Campus Ariquemes</strong></span>
+    <span>Licença MIT &middot; Software Livre e Acadêmico</span>
+  </div>
+</div>
+
+{% endblock %}

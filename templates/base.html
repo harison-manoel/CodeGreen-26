@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}AgroInsight IFRO — Gestão Inteligente de Insumos Rurais{% endblock %}</title>
+  <meta name="description" content="Sistema inteligente de gestão de insumos rurais para o AGROHACK 2026/2 - IFRO Campus Ariquemes. Análise preditiva, detecção de anomalias e apoio à decisão agronômica.">
+  
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- CSS Principal -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<div class="app-container">
+  
+  <!-- Sidebar de Navegação -->
+  <aside class="app-sidebar">
+    <div class="sidebar-header">
+      <div class="brand-badge">AGROHACK 2026/2</div>
+      <div class="brand-title">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v8"></path>
+          <path d="m4.93 10.93 1.41 1.41"></path>
+          <path d="M2 18h2"></path>
+          <path d="M20 18h2"></path>
+          <path d="m19.07 10.93-1.41 1.41"></path>
+          <path d="M22 22H2"></path>
+          <path d="m8 22 4-10 4 10"></path>
+        </svg>
+        Agro<span>Insight</span>
+      </div>
+      <div class="brand-subtitle">IFRO Campus Ariquemes</div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Principal</div>
+      
+      <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+        <div class="nav-link-content">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="7" height="9" x="3" y="3" rx="1"/>
+            <rect width="7" height="5" x="14" y="3" rx="1"/>
+            <rect width="7" height="9" x="14" y="12" rx="1"/>
+            <rect width="7" height="5" x="3" y="16" rx="1"/>
+          </svg>
+          <span>Dashboard</span>
+        </div>
+      </a>
+
+      <a href="{{ url_for('alertas_hub') }}" class="nav-link {% if request.endpoint == 'alertas_hub' %}active{% endif %}">
+        <div class="nav-link-content">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+          </svg>
+          <span>Central de Alertas</span>
+        </div>
+        {% if global_alerts.pendentes > 0 %}
+          <span class="nav-badge danger">{{ global_alerts.pendentes }}</span>
+        {% endif %}
+      </a>
+
+      <div class="nav-section-title">Estoque Rural</div>
+
+      <a href="{{ url_for('produtos_list') }}" class="nav-link {% if 'produtos' in request.endpoint %}active{% endif %}">
+        <div class="nav-link-content">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+            <path d="m3.3 7 8.7 5 8.7-5"/>
+            <path d="M12 22V12"/>
+          </svg>
+          <span>Insumos e Produtos</span>
+        </div>
+      </a>
+
+      <a href="{{ url_for('movimentacoes_list') }}" class="nav-link {% if 'movimentacoes' in request.endpoint %}active{% endif %}">
+        <div class="nav-link-content">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m17 2 4 4-4 4"/>
+            <path d="M3 11v-1a4 4 0 0 1 4-4h14"/>
+            <path d="m7 22-4-4 4-4"/>
+            <path d="M21 13v1a4 4 0 0 1-4 4H3"/>
+          </svg>
+          <span>Movimentações</span>
+        </div>
+      </a>
+
+      <div class="nav-section-title">Inteligência & Decisão</div>
+
+      <a href="{{ url_for('analises_hub') }}" class="nav-link {% if request.endpoint == 'analises_hub' %}active{% endif %}">
+        <div class="nav-link-content">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m22 7-7.5 7.5-4-4L2 19"/>
+            <circle cx="18" cy="7" r="3"/>
+          </svg>
+          <span>Análise Agronômica</span>
+        </div>
+      </a>
+
+      <a href="{{ url_for('relatorios_hub') }}" class="nav-link {% if request.endpoint == 'relatorios_hub' %}active{% endif %}">
+        <div class="nav-link-content">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+          <span>Relatórios & CSV</span>
+        </div>
+      </a>
+
+      <div class="nav-section-title">Sistema</div>
+
+      <a href="{{ url_for('importar_view') }}" class="nav-link {% if request.endpoint == 'importar_view' %}active{% endif %}">
+        <div class="nav-link-content">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <span>Importar Base / Demo</span>
+        </div>
+      </a>
+
+      <a href="{{ url_for('sobre_view') }}" class="nav-link {% if request.endpoint == 'sobre_view' %}active{% endif %}">
+        <div class="nav-link-content">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="16" x2="12" y2="12"/>
+            <line x1="12" y1="8" x2="12.01" y2="8"/>
+          </svg>
+          <span>Sobre o Desafio</span>
+        </div>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div><strong>Propriedade:</strong> Fazenda Modelo IFRO</div>
+      <div style="font-size:0.72rem; margin-top:2px; opacity:0.8;">Ariquemes — Rondônia</div>
+    </div>
+  </aside>
+
+  <!-- Área Principal -->
+  <div class="app-main">
+    
+    <!-- Barra Superior -->
+    <header class="app-topbar">
+      <div class="topbar-left">
+        <button class="mobile-menu-btn" aria-label="Abrir Menu">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <h1 class="topbar-title">{% block page_title %}Dashboard Inteligente{% endblock %}</h1>
+      </div>
+
+      <div class="topbar-right">
+        <div class="campus-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+          IFRO Ariquemes
+        </div>
+        
+        <button class="btn btn-primary btn-sm" data-modal-target="modal-nova-movimentacao">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Registrar Operação
+        </button>
+      </div>
+    </header>
+
+    <!-- Conteúdo da Página -->
+    <main class="content-area">
+      
+      <!-- Mensagens Flash -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-messages">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">
+                <span>{{ message }}</span>
+                <button class="alert-close" onclick="this.parentElement.remove();">&times;</button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+
+  </div>
+</div>
+
+<!-- Modal Global: Registrar Nova Movimentação com Validação de Saldo -->
+<div class="modal-backdrop" id="modal-nova-movimentacao">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">Registrar Movimentação de Estoque</h3>
+      <button class="modal-close" data-modal-close>&times;</button>
+    </div>
+    <form id="form-registrar-movimentacao" action="{{ url_for('movimentacao_registrar') }}" method="POST">
+      <input type="hidden" name="redirect_to" value="{{ request.full_path }}">
+      <div class="modal-body">
+        
+        <div class="form-group">
+          <label class="form-label">Insumo / Produto *</label>
+          <select name="produto_id" class="form-select" required style="width: 100%;">
+            <option value="">Selecione o produto...</option>
+            <!-- Injetado dinamicamente ou listado -->
+            {% for prod in produtos_ativos_global %}
+              <option value="{{ prod.id }}" data-saldo="{{ prod.quantidade_atual }}" data-unidade="{{ prod.unidade_medida }}">
+                {{ prod.nome }} (Saldo: {{ prod.quantidade_atual }} {{ prod.unidade_medida }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Tipo de Operação *</label>
+            <select name="tipo" class="form-select" required>
+              <option value="saida">Saída (Consumo / Aplicação em Campo)</option>
+              <option value="entrada">Entrada (Compra / Reposição de Fornecedor)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Quantidade Movimentada *</label>
+            <input type="number" step="any" min="0.001" name="quantidade" class="form-control" placeholder="0.00" required>
+            <div id="mov-saldo-feedback" class="form-hint" style="display:none;"></div>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Responsável Técnico *</label>
+            <input type="text" name="responsavel" class="form-control" placeholder="Ex: Eng. Agrônomo / Tratorista" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Data da Operação</label>
+            <input type="datetime-local" name="data_movimentacao" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Destino (Saída) ou Fornecedor (Entrada)</label>
+            <input type="text" name="fornecedor_destino" class="form-control" placeholder="Ex: Talhão Soja 2 ou Yara Fertilizantes">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Preço Unitário (R$) - Opcional</label>
+            <input type="number" step="0.01" min="0" name="preco_unitario" class="form-control" placeholder="0,00">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Observação / Justificativa</label>
+          <textarea name="observacao" rows="2" class="form-control" placeholder="Detalhes agronômicos da aplicação ou compra..."></textarea>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button>
+        <button type="submit" class="btn btn-primary">Confirmar Movimentação</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block extra_js %}{% endblock %}
+
+</body>
+</html>

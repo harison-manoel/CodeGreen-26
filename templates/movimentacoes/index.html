@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Movimentações de Estoque — AgroInsight IFRO{% endblock %}
+{% block page_title %}Entradas, Saídas e Auditoria de Estoque{% endblock %}
+
+{% block content %}
+
+<!-- Barra de Filtros de Movimentações -->
+<div class="filter-bar">
+  <form method="GET" action="{{ url_for('movimentacoes_list') }}" class="filter-group">
+    
+    <!-- Filtro por Insumo -->
+    <select name="produto_id" class="form-select" onchange="this.form.submit()" style="max-width: 250px;">
+      <option value="">Todos os Insumos</option>
+      {% for prod in produtos %}
+        <option value="{{ prod.id }}" {% if filtro_produto_id == prod.id %}selected{% endif %}>
+          {{ prod.nome }}
+        </option>
+      {% endfor %}
+    </select>
+
+    <!-- Filtro por Tipo -->
+    <select name="tipo" class="form-select" onchange="this.form.submit()">
+      <option value="">Entradas e Saídas</option>
+      <option value="entrada" {% if filtro_tipo == 'entrada' %}selected{% endif %}>Apenas Entradas</option>
+      <option value="saida" {% if filtro_tipo == 'saida' %}selected{% endif %}>Apenas Saídas</option>
+    </select>
+
+    <!-- Data Início -->
+    <input type="date" name="data_inicio" class="form-control" value="{{ filtro_inicio or '' }}" title="Data Início">
+    
+    <!-- Data Fim -->
+    <input type="date" name="data_fim" class="form-control" value="{{ filtro_fim or '' }}" title="Data Fim">
+
+    <button type="submit" class="btn btn-secondary">Filtrar</button>
+
+    {% if filtro_produto_id or filtro_tipo or filtro_inicio or filtro_fim or filtro_responsavel %}
+      <a href="{{ url_for('movimentacoes_list') }}" class="btn btn-secondary btn-sm" style="color: var(--critico-text);">Limpar</a>
+    {% endif %}
+  </form>
+
+  <div>
+    <button class="btn btn-primary" data-modal-target="modal-nova-movimentacao">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      Registrar Movimentação
+    </button>
+  </div>
+</div>
+
+<!-- Tabela de Movimentações -->
+<div class="table-card">
+  <div class="card-title-bar" style="padding: 1.25rem 1.5rem 0.75rem;">
+    <h2 class="card-title">
+      Histórico Contábil e Operacional ({{ movimentacoes|length }} registros)
+    </h2>
+    <div style="font-size: 0.8rem; color: var(--text-muted);">
+      Transações com integridade ACID e bloqueio de saldo negativo
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Data / Hora</th>
+          <th>Operação</th>
+          <th>Insumo</th>
+          <th>Quantidade</th>
+          <th>Preço Unit.</th>
+          <th>Destino / Origem</th>
+          <th>Responsável</th>
+          <th>Observação</th>
+          <th>Status</th>
+          <th style="text-align: right;">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if movimentacoes %}
+          {% for m in movimentacoes %}
+            <tr {% if m.estornada == 1 %}style="opacity: 0.6; background-color: #fafafa;"{% endif %}>
+              <td style="font-size: 0.78rem; color: var(--text-muted);">#{{ m.id }}</td>
+              <td style="font-size: 0.82rem; color: var(--text-muted); white-space: nowrap;">
+                {{ m.data_movimentacao }}
+              </td>
+              <td>
+                {% if m.tipo == 'entrada' %}
+                  <span class="badge badge-entrada">&uarr; Entrada</span>
+                {% else %}
+                  <span class="badge badge-saida">&darr; Saída</span>
+                {% endif %}
+              </td>
+              <td>
+                <a href="{{ url_for('produto_detalhe', product_id=m.produto_id) }}" style="font-weight: 700; color: var(--primary-900); text-decoration: none;">
+                  {{ m.produto_nome }}
+                </a>
+              </td>
+              <td style="font-weight: 800;">
+                {{ m.quantidade }} {{ m.unidade_medida }}
+              </td>
+              <td>
+                {% if m.preco_unitario is not none %}
+                  {{ m.preco_unitario|currency }}
+                {% else %}
+                  <span style="color: var(--text-muted); font-size: 0.78rem;">—</span>
+                {% endif %}
+              </td>
+              <td style="font-size: 0.82rem;">{{ m.fornecedor_destino or '—' }}</td>
+              <td style="font-size: 0.82rem; font-weight: 500;">{{ m.responsavel }}</td>
+              <td style="font-size: 0.8rem; color: var(--text-muted); max-width: 220px;">
+                {{ m.observacao or '—' }}
+              </td>
+              <td>
+                {% if m.estornada == 1 %}
+                  <span class="badge badge-estorno" title="Movimentação cancelada / estornada">Estornada</span>
+                {% else %}
+                  <span class="badge badge-sucesso">Válida</span>
+                {% endif %}
+              </td>
+              <td style="text-align: right; white-space: nowrap;">
+                {% if m.estornada == 0 %}
+                  <button class="btn btn-secondary btn-sm" style="color: var(--critico-text);" onclick="openEstornoModal({{ m.id }}, '{{ m.produto_nome|replace("'", "\\'") }}', '{{ m.tipo }}', {{ m.quantidade }}, '{{ m.unidade_medida }}')">
+                    Estornar
+                  </button>
+                {% else %}
+                  <span style="font-size: 0.75rem; color: var(--text-muted);">Auditado</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="11" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+              Nenhuma movimentação encontrada para os filtros aplicados.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal: Estornar / Cancelar Movimentação com Justificativa Obrigatória -->
+<div class="modal-backdrop" id="modal-estornar-movimentacao">
+  <div class="modal-content" style="max-width: 500px;">
+    <div class="modal-header">
+      <h3 class="modal-title" style="color: var(--critico-badge);">Estornar Movimentação</h3>
+      <button class="modal-close" data-modal-close>&times;</button>
+    </div>
+    <form id="form-estorno" action="" method="POST">
+      <div class="modal-body">
+        
+        <p id="estorno-info" style="font-size: 0.92rem; margin-bottom: 1rem; color: var(--text-main);"></p>
+
+        <div class="alert alert-aviso" style="font-size: 0.82rem;">
+          <strong>Aviso de Auditoria:</strong> O estorno recalculará imediatamente o saldo do insumo e registrará uma entrada na tabela de auditoria com seu nome e a justificativa preenchida.
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Responsável pelo Estorno *</label>
+          <input type="text" name="responsavel" class="form-control" placeholder="Seu nome completo" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Justificativa Técnica do Cancelamento *</label>
+          <textarea name="justificativa" rows="3" class="form-control" placeholder="Descreva o motivo (ex: erro de digitação, produto devolvido à cooperativa, cancelamento da aplicação...)" required minlength="5"></textarea>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button>
+        <button type="submit" class="btn btn-danger">Confirmar Estorno e Recalcular Saldo</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openEstornoModal(movId, prodNome, tipo, qtd, unid) {
+    const modal = document.getElementById('modal-estornar-movimentacao');
+    const form = document.getElementById('form-estorno');
+    const info = document.getElementById('estorno-info');
+
+    form.action = '/movimentacoes/' + movId + '/estornar';
+    info.innerHTML = `Você está estornando a movimentação <strong>#${movId}</strong> de <strong>${tipo.toUpperCase()}</strong> de <strong>${qtd} ${unid}</strong> do produto <strong>${prodNome}</strong>.`;
+    
+    modal.classList.add('show');
+}
+</script>
+{% endblock %}
