@@ -1,0 +1,14 @@
+nome;categoria;unidade_medida;quantidade_atual;estoque_minimo;estoque_maximo;prazo_reposicao_dias;preco_aquisicao_unitario;lote;data_validade;fornecedor;local_armazenamento
+Calcário Dolomítico PRNT 85%;Corretivos;tonelada;4;15;40;10;210.00;L-CALC-2026;;Calcário Vale do Jamari;Galpão Aberto 1
+Herbicida Glifosato 480 SL;Defensivos e produtos biológicos;litro;35;50;200;7;48.50;L-GLI-883;2027-08-20;AgroNorte Rondônia;Depósito de Químicos - Prateleira A
+Inoculante Biológico Bradyrhizobium Soja;Defensivos e produtos biológicos;dose;85;20;100;5;32.00;L-BIO-091;2026-11-12;BioAgro Soluções Sustentáveis;Câmara Fria 2
+Fungicida Clorotalonil 720 SC;Defensivos e produtos biológicos;litro;15;10;60;8;95.00;L-CLO-2024;2026-10-02;Distribuidora Rural Jamari;Depósito Químico - Área de Quarentena
+Bico de Pulverizador TeeJet TT11002;Peças e manutenção;unidade;140;20;40;15;28.50;L-TEE-501;;TratorPeças Ariquemes;Almoxarifado Central - Gaveta B4
+Óleo Diesel S10 Agrícola;Combustíveis e lubrificantes;litro;1850;500;5000;3;6.15;L-DSL-0426;;Posto & TRR Guaporé;Tanque Estacionário 1
+Fungicida Sistêmico Fox Xpro Galão 5L;Defensivos e produtos biológicos;galão 5L;10;2;15;12;2450.00;L-FOX-99;2027-09-29;Bayer Crop Science Distribuição;Depósito de Alta Segurança
+Adubo NPK 04-14-08 Granulado;Fertilizantes;saca 50kg;120;50;300;10;185.00;L-NPK-01;2028-09-24;Yara Fertilizantes Rondônia;Shed de Fertilizantes
+Cloreto de Potássio 60% K2O;Fertilizantes;saca 50kg;45;20;100;8;175.00;L-KCL-A;;NutriSolo Ariquemes;Shed de Fertilizantes
+Cloreto de Potassio (KCl) Granulado;Fertilizantes;saca 50kg;15;10;50;8;178.00;L-KCL-B;;NutriSolo Ariquemes;Shed de Fertilizantes
+Mudas Selecionadas Café Conilon BRS Ouro Preto;Sementes;unidade;800;200;2000;20;3.80;L-EMBRAPA-2026;2026-12-08;Viveiro Clonagem Rondônia;Viveiro Telado 3
+Tubo Gotejador Drip 16mm Bobina 500m;Materiais de irrigação;unidade;18;5;30;15;340.00;L-IRR-2026;;IrigaRondônia Sistemas;Almoxarifado Central
+Respirador Semifacial com Filtro (EPI);Equipamentos de proteção individual e materiais diversos;unidade;24;10;50;10;85.00;L-EPI-3M;2028-03-01;Protege Agro Segurança;Armário EPI 1
